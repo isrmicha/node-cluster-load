@@ -1,53 +1,53 @@
 const cluster = require("cluster")
 const numCPUs = require("os").cpus().length
-const performance = require('perf_hooks').performance;
+const performance = require("perf_hooks").performance
 if (cluster.isMaster) {
   console.log(`MASTER OF PUPZS`)
   const workers = []
-  const loads = Array(100)
+  const loads = Array(1000)
     .fill(0)
     .map(el => (Math.random() * 100).toFixed(0))
   const initialSize = loads.length
   var perc = 100
   const perfBefore = performance.now()
   var perfAfter
+  var all = []
   for (let i = 0; i < numCPUs; i++) {
     workers[i] = cluster.fork()
     workers[i].on("message", payload => {
-      const { message, index } = payload
-      loads.splice(index, 1)
-      let oldPerc = perc
-      if (perc != ((loads.length / initialSize) * 100).toFixed(0))
-        perc = ((loads.length / initialSize) * 100).toFixed(0)
-      if (loads.length == 0) {
-        const time = perfAfter - perfBefore
-        console.log(`Finished in => ${time}`)
-      } else if (oldPerc != perc)
-        console.log(
-          `[Thread ${i}][${((loads.length / initialSize) * 100).toFixed(
-            0
-          )}%][Payload => ${message}]`
-        )
+      const { message, indexThread, index } = payload
+      if (indexThread === i) {
+        all.push(`[${indexThread}] => [${message}]`)
+        loads.shift()
+        if (!loads.length) {
+          perfAfter = performance.now()
+          const time = perfAfter - perfBefore
+          console.log(`Finished in => ${time.toFixed(0)} ms`)
+          console.log(all.sort())
+          process.exit(0)
+        } else {
+          workers[indexThread].send({
+            message: loads[0],
+            indexThread: indexThread
+          })
+        }
+      }
     })
     workers[i].on("exit", worker => {
       console.log(`worker ${worker.process.pid} died`)
     })
-  }
-  loads.map((load, index) =>
-    setTimeout(
-      () =>
-        workers[Math.floor((index / (numCPUs + 1)) % numCPUs)].send({
-          message: load,
-          index: index
-        }),
-      10000 * Math.random()
-    )
-  )
-} else {
-  process.on("message", payload =>
-    process.send({
-      message: `${payload.message} => ${new Date().toJSON()}`,
-      index: payload.index
+    workers[i].send({
+      message: loads[0],
+      indexThread: i
     })
-  )
+  }
+} else {
+  process.on("message", payload => {
+    const { message, indexThread } = payload
+
+    process.send({
+      message: `${message} => ${new Date().toJSON()}`,
+      indexThread: indexThread
+    })
+  })
 }
