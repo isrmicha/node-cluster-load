@@ -7,17 +7,15 @@ if (cluster.isMaster) {
   const loads = Array(1000)
     .fill(0)
     .map(el => (Math.random() * 100).toFixed(0))
-  const initialSize = loads.length
-  var perc = 100
   const perfBefore = performance.now()
   var perfAfter
   var all = []
   for (let i = 0; i < numCPUs; i++) {
     workers[i] = cluster.fork()
     workers[i].on("message", payload => {
-      const { message, indexThread, index } = payload
+      const { message, indexThread } = payload
       if (indexThread === i) {
-        all.push(`[${indexThread}] => [${message}]`)
+        all.push(message)
         loads.shift()
         if (!loads.length) {
           perfAfter = performance.now()
@@ -27,7 +25,7 @@ if (cluster.isMaster) {
           process.exit(0)
         } else {
           workers[indexThread].send({
-            message: loads[0],
+            message: loads.length,
             indexThread: indexThread
           })
         }
@@ -46,8 +44,8 @@ if (cluster.isMaster) {
     const { message, indexThread } = payload
 
     process.send({
-      message: `${message} => ${new Date().toJSON()}`,
-      indexThread: indexThread
+      message,
+      indexThread
     })
   })
 }
