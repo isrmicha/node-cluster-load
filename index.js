@@ -15,13 +15,13 @@ if (cluster.isMaster) {
     workers[i].on("message", payload => {
       const { message, indexThread } = payload
       if (indexThread === i) {
-        all.push(message)
+        all.push(parseInt(message))
         loads.shift()
         if (!loads.length) {
           perfAfter = performance.now()
           const time = perfAfter - perfBefore
           console.log(`Finished in => ${time.toFixed(0)} ms`)
-          console.log(all.sort())
+          console.log(all.sort((a,b)=>a-b))
           process.exit(0)
         } else {
           workers[indexThread].send({
