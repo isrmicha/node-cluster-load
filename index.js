@@ -1,14 +1,16 @@
 const cluster = require("cluster")
 const numCPUs = require("os").cpus().length
-
+const performance = require('perf_hooks').performance;
 if (cluster.isMaster) {
   console.log(`MASTER OF PUPZS`)
   const workers = []
-  const loads = Array(10000)
+  const loads = Array(100)
     .fill(0)
     .map(el => (Math.random() * 100).toFixed(0))
   const initialSize = loads.length
   var perc = 100
+  const perfBefore = performance.now()
+  var perfAfter
   for (let i = 0; i < numCPUs; i++) {
     workers[i] = cluster.fork()
     workers[i].on("message", payload => {
@@ -17,10 +19,14 @@ if (cluster.isMaster) {
       let oldPerc = perc
       if (perc != ((loads.length / initialSize) * 100).toFixed(0))
         perc = ((loads.length / initialSize) * 100).toFixed(0)
-      if (loads.length == 0) console.log(`Carga finalizada com sucesso!`)
-      else if (oldPerc != perc)
+      if (loads.length == 0) {
+        const time = perfAfter - perfBefore
+        console.log(`Finished in => ${time}`)
+      } else if (oldPerc != perc)
         console.log(
-          `[Thread ${i}][${((loads.length / initialSize) * 100).toFixed(0)}%][Payload => ${message}]`
+          `[Thread ${i}][${((loads.length / initialSize) * 100).toFixed(
+            0
+          )}%][Payload => ${message}]`
         )
     })
     workers[i].on("exit", worker => {
@@ -34,7 +40,7 @@ if (cluster.isMaster) {
           message: load,
           index: index
         }),
-      100000 * Math.random()
+      10000 * Math.random()
     )
   )
 } else {
