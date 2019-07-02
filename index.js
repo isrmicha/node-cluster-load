@@ -20,7 +20,7 @@ if (cluster.isMaster) {
       if (loads.length == 0) console.log(`Carga finalizada com sucesso!`)
       else if (oldPerc != perc)
         console.log(
-          `[Thread ${i}][${((loads.length / initialSize) * 100).toFixed(0)}%]`
+          `[Thread ${i}][${((loads.length / initialSize) * 100).toFixed(0)}%][Payload => ${message}]`
         )
     })
     workers[i].on("exit", worker => {
@@ -34,13 +34,13 @@ if (cluster.isMaster) {
           message: load,
           index: index
         }),
-      10000 * Math.random()
+      100000 * Math.random()
     )
   )
 } else {
   process.on("message", payload =>
     process.send({
-      message: `${payload.message} => recebido em :  ${new Date().toJSON()}`,
+      message: `${payload.message} => ${new Date().toJSON()}`,
       index: payload.index
     })
   )
